@@ -648,36 +648,225 @@
             }
         }
 
-        async function downloadPDF() {
+        function downloadPDF() {
             generateCV();
             
             const { jsPDF } = window.jspdf;
-            const cvElement = document.getElementById('cvPreview');
+            const pdf = new jsPDF('p', 'mm', 'a4');
             
-            try {
-                const canvas = await html2canvas(cvElement, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    height: 842,
-                    width: 595
-                });
-                
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                
-                const imgWidth = 210;
-                const imgHeight = 297;
-                
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                
-                const fullName = document.getElementById('fullName').value || 'CV';
-                pdf.save(`${fullName.replace(/\s+/g, '_')}_CV.pdf`);
-            } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Error generating PDF. Please try again.');
+            const fullName = document.getElementById('fullName').value || 'Your Name';
+            const email = document.getElementById('email').value || 'your.email@example.com';
+            const phone = document.getElementById('phone').value || '+1 (555) 123-4567';
+            const location = document.getElementById('location').value || 'Your Location';
+            const linkedin = document.getElementById('linkedin').value;
+            const summary = document.getElementById('summary').value;
+            const skills = document.getElementById('skills').value;
+            const softSkills = document.getElementById('softSkills').value;
+            
+            let yPosition = 20;
+            const lineHeight = 6;
+            const sectionSpacing = 10;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const margin = 20;
+            const contentWidth = pageWidth - 2 * margin;
+            
+            pdf.setFont('helvetica');
+            
+            // Header
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(fullName.toUpperCase(), pageWidth / 2, yPosition, { align: 'center' });
+            
+            yPosition += lineHeight + 3;
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            let contactInfo = `${email} | ${phone} | ${location}`;
+            if (linkedin) {
+                contactInfo += ` | ${linkedin}`;
             }
+            pdf.text(contactInfo, pageWidth / 2, yPosition, { align: 'center' });
+            
+            yPosition += 10;
+            pdf.setLineWidth(0.5);
+            pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 8;
+            
+            // Summary
+            if (summary) {
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('PROFESSIONAL SUMMARY', margin, yPosition);
+                yPosition += lineHeight + 2;
+                
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'normal');
+                const summaryLines = pdf.splitTextToSize(summary, contentWidth);
+                summaryLines.forEach(line => {
+                    if (yPosition > 270) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    }
+                    pdf.text(line, margin, yPosition);
+                    yPosition += lineHeight;
+                });
+                yPosition += sectionSpacing;
+            }
+            
+            // Experience
+            const experienceItems = document.querySelectorAll('#experienceContainer .dynamic-item');
+            if (experienceItems.length > 0 && experienceItems[0].querySelector('.job-title').value) {
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('WORK EXPERIENCE', margin, yPosition);
+                yPosition += lineHeight + 2;
+                
+                experienceItems.forEach(item => {
+                    const jobTitle = item.querySelector('.job-title').value;
+                    const company = item.querySelector('.company').value;
+                    const expLocation = item.querySelector('.exp-location').value;
+                    const startDate = item.querySelector('.start-date').value;
+                    const endDate = item.querySelector('.end-date').value;
+                    const responsibilities = item.querySelector('.responsibilities').value;
+                    
+                    if (jobTitle) {
+                        if (yPosition > 250) {
+                            pdf.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(jobTitle, margin, yPosition);
+                        
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.text(`${startDate} - ${endDate}`, pageWidth - margin, yPosition, { align: 'right' });
+                        
+                        yPosition += lineHeight;
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.text(`${company}, ${expLocation}`, margin, yPosition);
+                        
+                        yPosition += lineHeight + 1;
+                        pdf.setFont('helvetica', 'normal');
+                        
+                        const bulletPoints = responsibilities.split('•').filter(point => point.trim());
+                        bulletPoints.forEach(point => {
+                            if (yPosition > 270) {
+                                pdf.addPage();
+                                yPosition = 20;
+                            }
+                            const bulletLines = pdf.splitTextToSize(point.trim(), contentWidth - 10);
+                            bulletLines.forEach((line, index) => {
+                                const prefix = index === 0 ? '• ' : '  ';
+                                pdf.text(prefix + line, margin, yPosition);
+                                yPosition += lineHeight;
+                            });
+                        });
+                        yPosition += 3;
+                    }
+                });
+                yPosition += sectionSpacing;
+            }
+            
+            // Education
+            const educationItems = document.querySelectorAll('#educationContainer .dynamic-item');
+            if (educationItems.length > 0 && educationItems[0].querySelector('.degree').value) {
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('EDUCATION', margin, yPosition);
+                yPosition += lineHeight + 2;
+                
+                educationItems.forEach(item => {
+                    const degree = item.querySelector('.degree').value;
+                    const institution = item.querySelector('.institution').value;
+                    const eduLocation = item.querySelector('.edu-location').value;
+                    const gradDate = item.querySelector('.grad-date').value;
+                    const gpa = item.querySelector('.gpa').value;
+                    
+                    if (degree) {
+                        if (yPosition > 250) {
+                            pdf.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(degree, margin, yPosition);
+                        
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.text(gradDate, pageWidth - margin, yPosition, { align: 'right' });
+                        
+                        yPosition += lineHeight;
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.text(`${institution}, ${eduLocation}`, margin, yPosition);
+                        
+                        if (gpa) {
+                            yPosition += lineHeight;
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.text(`GPA: ${gpa}`, margin, yPosition);
+                        }
+                        yPosition += 5;
+                    }
+                });
+                yPosition += sectionSpacing;
+            }
+            
+            // Skills
+            if (skills || softSkills) {
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('SKILLS', margin, yPosition);
+                yPosition += lineHeight + 2;
+                
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'normal');
+                
+                if (skills) {
+                    pdf.text(`Technical Skills: ${skills}`, margin, yPosition);
+                    yPosition += lineHeight;
+                }
+                
+                if (softSkills) {
+                    pdf.text(`Soft Skills: ${softSkills}`, margin, yPosition);
+                    yPosition += lineHeight;
+                }
+                yPosition += sectionSpacing;
+            }
+            
+            // Certifications
+            const certificationItems = document.querySelectorAll('#certificationsContainer .dynamic-item');
+            if (certificationItems.length > 0 && certificationItems[0].querySelector('.cert-name').value) {
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('CERTIFICATIONS', margin, yPosition);
+                yPosition += lineHeight + 2;
+                
+                certificationItems.forEach(item => {
+                    const certName = item.querySelector('.cert-name').value;
+                    const certIssuer = item.querySelector('.cert-issuer').value;
+                    const certDate = item.querySelector('.cert-date').value;
+                    
+                    if (certName) {
+                        if (yPosition > 250) {
+                            pdf.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(certName, margin, yPosition);
+                        
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.text(certDate, pageWidth - margin, yPosition, { align: 'right' });
+                        
+                        yPosition += lineHeight;
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.text(certIssuer, margin, yPosition);
+                        yPosition += 5;
+                    }
+                });
+            }
+            
+            pdf.save(`${fullName.replace(/\s+/g, '_')}_CV.pdf`);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
